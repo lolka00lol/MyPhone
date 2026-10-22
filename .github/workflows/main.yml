@@ -35,11 +35,11 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # Restore the application to populate the obj folder with RuntimeIdentifiers
+      # Восстановление пакетов под гарантированно существующей платформой Any CPU
       - name: Restore the application
-        run: msbuild MyPhone.sln /t:Restore /p:Configuration=\${{ matrix.configuration }}
+        run: msbuild MyPhone.sln /t:Restore /p:Configuration=\${{ matrix.configuration }} /p:Platform="Any CPU"
 
-      # Create the app package by building and packaging the project
+      # Создание пакета под конкретные платформы из матрицы (x64, x86, ARM64)
       - name: Create the app package
         run: |
           msbuild MyPhone.sln `
