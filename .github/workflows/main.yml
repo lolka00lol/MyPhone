@@ -35,11 +35,11 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # Восстановление зависимостей приложения
+      # Restore the application to populate the obj folder with RuntimeIdentifiers
       - name: Restore the application
-        run: msbuild \(env:Solution_Name /t:Restore /p:Configuration=\)env:Configuration
+        run: msbuild $env:Solution_Name.sln /t:Restore /p:Configuration=$env:Configuration
         env:
-          Configuration: \${{ matrix.configuration }}
+          Configuration: ${{ matrix.configuration }}
 
       # Сборка пакетов приложения
       - name: Create the app package
