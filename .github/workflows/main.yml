@@ -78,9 +78,9 @@ jobs:
       # Перенос файлов в общую директорию из подпапок артефактов v4
       - name: Prepare workspace
         run: |
-          mkdir \$env:Bundle_Install_Path
-          mkdir \$env:Bundling_Workspace_Path
-          Get-ChildItem -Path \(env:Unsigned_Packages_Path -Recurse -Filter *.msix \vert{} Copy-Item -Destination\)env:Bundling_Workspace_Path -Verbose
+          mkdir $env:Bundle_Install_Path
+          mkdir $env:Bundling_Workspace_Path
+          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | Copy-Item -Destination $env:Bundling_Workspace_Path -Verbose
           Write-Output "Current workspace structure:"
           ls
         
