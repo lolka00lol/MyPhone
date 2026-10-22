@@ -35,9 +35,9 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # Восстановление пакетов под гарантированно существующей платформой Any CPU
+      # Надежное восстановление зависимостей через dotnet CLI
       - name: Restore the application
-        run: msbuild MyPhone.sln /t:Restore /p:Configuration=\${{ matrix.configuration }} /p:Platform="Any CPU"
+        run: dotnet restore MyPhone.sln
 
       # Создание пакета под конкретные платформы из матрицы (x64, x86, ARM64)
       - name: Create the app package
