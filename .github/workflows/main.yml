@@ -44,7 +44,7 @@ jobs:
         run: |
           msbuild MyPhone/MyPhone.csproj `
               /p:Configuration=${{ matrix.configuration }} `
-              /p:Platform=\${{ matrix.platform }} `
+              /p:Platform=${{ matrix.platform }} \`
               /p:UapAppxPackageBuildMode=SideloadOnly `
               /p:AppxBundle=Never `
               /p:AppxPackageDir="Packages\" `
