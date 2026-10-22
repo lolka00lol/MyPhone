@@ -48,7 +48,9 @@ jobs:
               /p:UapAppxPackageBuildMode=SideloadOnly `
               /p:AppxBundle=Never `
               /p:AppxPackageDir="Packages\" `
-              /p:GenerateAppxPackageOnBuild=true
+              /p:GenerateAppxPackageOnBuild=true `
+              /p:DisableWinEXEProjectCheck=true `
+              /p:DefineConstants="DISABLE_XAML_GENERATED_MAIN"
         env:
           Appx_Bundle: Never
           Appx_Package_Build_Mode: SideloadOnly
