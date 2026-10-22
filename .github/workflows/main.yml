@@ -85,14 +85,7 @@ jobs:
           ls
         
       - name: Bundle package
-        run: |
-          \$files = ls \(env:Bundling_Workspace_Path \vert{} Sort-Object -Property Name -Descending\)bundleName = \(files[0].Name\)bundleName = bundleName.Substring(0, bundleName.LastIndexOf('_'))
-          foreach (\$f in \(files) {\)beginIndex = \(f.Name.LastIndexOf('_')\)endIndex = \(f.Name.LastIndexOf('.')\)bundleName += f.Name.Substring(beginIndex, endIndex - beginIndex)
-          }
-          \$bundleName += ".msixbundle"
-          Write-Output "Making MSIX bundle \${bundleName}"
-          MakeAppx bundle /d \(env:Bundling_Workspace_Path /p "\){env:Bundle_Install_Path}\${bundleName}"
-          echo "MSIX_Bunde_FileName=bundleName" >> env:GITHUB_ENV
+        run: MakeAppx bundle /d $env:Bundling_Workspace_Path /p "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
          
       - name: Decode the pfx
         id: decode-pfx
