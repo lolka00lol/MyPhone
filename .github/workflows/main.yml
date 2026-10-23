@@ -69,8 +69,8 @@ jobs:
         run: |
           mkdir $env:Bundle_Install_Path
           mkdir $env:Bundling_Workspace_Path
-          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | ForEach-Object { Copy-Item -Path $_.FullName -Destination $env:Bundling_Workspace_Path -Verbose }
-          Write-Output "Files found for bundling:"
+          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | Where-Object { $_.Name -notlike "*WindowsAppRuntime*" -and $_.Name -notlike "*VCLibs*" } | ForEach-Object { Copy-Item -Path $_.FullName -Destination $env:Bundling_Workspace_Path -Verbose }
+          Write-Output "Files found for bundling (Frameworks excluded):"
           Get-ChildItem -Path $env:Bundling_Workspace_Path
         
       - name: Bundle package
