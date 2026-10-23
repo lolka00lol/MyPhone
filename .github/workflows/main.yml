@@ -25,35 +25,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Обновлено до v4
       - name: Install .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 6.0.x
 
-      # Обновлено до v3
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # Надежное восстановление зависимостей через dotnet CLI
       - name: Restore the application
         run: dotnet restore MyPhone.sln
 
-      # Create the app package by building and packaging the project
       - name: Create the app package
         run: msbuild MyPhone/MyPhone.csproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never /p:AppxPackageDir="Packages\" /p:GenerateAppxPackageOnBuild=true /p:DisableWinEXEProjectCheck=true /p:DefineConstants="DISABLE_XAML_GENERATED_MAIN"
-        env:
-          Appx_Bundle: Never
-          Appx_Package_Build_Mode: SideloadOnly
-          Appx_Package_Dir: Packages\
-          Configuration: \${{ matrix.configuration }}
 
-      # Исправлено: Обновлено до v4 (уникальное имя для каждой платформы матрицы)
       - name: Upload MSIX package
         uses: actions/upload-artifact@v4
         with:
-          name: \({{ env.Unsigned_Artifact_Name }}-\){{ matrix.platform }}
-          path: \${{ env.Solution_Name }}\\Packages
+          name: ${{ env.Unsigned_Artifact_Name }}-${{ matrix.platform }}
+          path: MyPhone\Packages
           
   bundle:
     name: Bundle and sign the MSIX package
@@ -64,25 +54,24 @@ jobs:
       Bundling_Workspace_Path: BundlingWorkspace
       Bundle_Install_Path: BundlePackage
       Unsigned_Packages_Path: Packages
+      Bundle_Artifact_Name: MyPhonePackageSigned
     
     steps:
       - name: Setup VS Dev Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
         
-      # Исправлено: Обновлено до v4 для скачивания всех пакетов сборки
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with: 
-          path: \${{ env.Unsigned_Packages_Path }}
+          path: ${{ env.Unsigned_Packages_Path }}
         
-      # Перенос файлов в общую директорию из подпапок артефактов v4
       - name: Prepare workspace
         run: |
           mkdir $env:Bundle_Install_Path
           mkdir $env:Bundling_Workspace_Path
-          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | Copy-Item -Destination $env:Bundling_Workspace_Path -Verbose
-          Write-Output "Current workspace structure:"
-          ls
+          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | ForEach-Object { Copy-Item -Path $_.FullName -Destination $env:Bundling_Workspace_Path -Verbose }
+          Write-Output "Files found for bundling:"
+          Get-ChildItem -Path $env:Bundling_Workspace_Path
         
       - name: Bundle package
         run: MakeAppx bundle /d $env:Bundling_Workspace_Path /p "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
@@ -90,42 +79,36 @@ jobs:
       - name: Decode the pfx
         id: decode-pfx
         run: |
-          \(pfx_cert_byte = [System.Convert]::FromBase64String("\){{ secrets.TESTING_PFX_BASE64_ENCODED }}")
-          \$certificatePath = "GitHubActionsWorkflow.pfx"
-          [IO.File]::WriteAllBytes(certificatePath, pfx_cert_byte)
+          $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.TESTING_PFX_BASE64_ENCODED }}")
+          $certificatePath = "GitHubActionsWorkflow.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, $pfx_cert_byte)
           
       - name: Sign the bundle
         run: SignTool sign /fd SHA256 /a /f GitHubActionsWorkflow.pfx /p "${{ secrets.TESTING_PFX_PASSPHRASE }}" "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
       
       - name: Post Decode the pfx
-        if: \${{ steps.decode-pfx.outcome == 'success' || steps.decode-pfx.outcome == 'failure' }}
+        if: ${{ steps.decode-pfx.outcome == 'success' || steps.decode-pfx.outcome == 'failure' }}
         run: Remove-Item -path GitHubActionsWorkflow.pfx
           
       - name: Prepare for upload
         run: |
-          files = Get-ChildItem -Path env:Unsigned_Packages_Path -Recurse -Filter *.ps1
-          cp \(files[0].FullName\)env:Bundle_Install_Path -Verbose
+          $files = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.ps1
+          if ($files) { cp $files.FullName $env:Bundle_Install_Path -Verbose }
           
-          symbols = Get-ChildItem -Path env:Unsigned_Packages_Path -Recurse -Filter *.msixsym
-          cp symbols.FullName env:Bundle_Install_Path -Verbose
+          $symbols = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msixsym
+          if ($symbols) { cp $symbols.FullName $env:Bundle_Install_Path -Verbose }
           
-          # Копирование зависимостей
-          dirs = Get-ChildItem -Path env:Unsigned_Packages_Path -Recurse | Where-Object { \(_.PSIsContainer -and\)_.Name -eq "Dependencies" }
-          if (\$dirs) { cp -Recurse \(dirs[0].FullName\)env:Bundle_Install_Path -Verbose }
+          $dirs = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse | Where-Object { $_.PSIsContainer -and $_.Name -eq "Dependencies" }
+          if ($dirs) { cp -Recurse $dirs.FullName $env:Bundle_Install_Path -Verbose }
 
           Write-Output "Downloading public certificate"
-          \(public_cert_byte = [System.Convert]::FromBase64String("\){{ secrets.TESTING_PUBLIC_CERT_BASE64_ENCODED }}")
-          \(public_cert_path = "\){env:Bundle_Install_Path}\MyPhoneTestingCert_GithubAction.cer"
-          [IO.File]::WriteAllBytes("\$public_cert_path", \(public_cert_byte)\)artifactName = \(env:MSIX_Bunde_FileName.Substring(0,\)env:MSIX_Bunde_FileName.LastIndexOf('.'))
-          echo "Bundle_Artifact_Name=artifactName" >> env:GITHUB_ENV
+          $public_cert_byte = [System.Convert]::FromBase64String("${{ secrets.TESTING_PUBLIC_CERT_BASE64_ENCODED }}")
+          $public_cert_path = "$env:Bundle_Install_Path/MyPhoneTestingCert_GithubAction.cer"
+          [IO.File]::WriteAllBytes($public_cert_path, $public_cert_byte)
+          Write-Output "Downloaded public certificate at $public_cert_path"
 
-      # Шаг удаления старого экшена закомментирован, так как в v4 управление артефактами изменилось
-      # - name: Delete old unsigned artifact
-      #   uses: GeekyEggo/delete-artifact@v1.0.0
-
-      # Исправлено: Обновлено до v4
       - name: Upload signed MSIX package bundle
         uses: actions/upload-artifact@v4
         with:
-          name: \${{ env.Bundle_Artifact_Name }}
-          path: \${{ env.Bundle_Install_Path }}
+          name: ${{ env.Bundle_Artifact_Name }}
+          path: ${{ env.Bundle_Install_Path }}
