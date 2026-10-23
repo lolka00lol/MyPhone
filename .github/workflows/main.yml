@@ -95,8 +95,7 @@ jobs:
           [IO.File]::WriteAllBytes(certificatePath, pfx_cert_byte)
           
       - name: Sign the bundle
-        run: |
-          SignTool sign /fd SHA256 /a /f GitHubActionsWorkflow.pfx /p "\({{ secrets.TESTING_PFX_PASSPHRASE }}" "\){env:Bundle_Install_Path}\${{ env.MSIX_Bunde_FileName }}"
+        run: SignTool sign /fd SHA256 /a /f GitHubActionsWorkflow.pfx /p "${{ secrets.TESTING_PFX_PASSPHRASE }}" "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
       
       - name: Post Decode the pfx
         if: \${{ steps.decode-pfx.outcome == 'success' || steps.decode-pfx.outcome == 'failure' }}
