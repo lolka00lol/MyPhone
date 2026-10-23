@@ -46,7 +46,7 @@ jobs:
           path: MyPhone\Packages
           
   bundle:
-    name: Bundle and sign the MSIX package
+    name: Bundle the MSIX package
     runs-on: windows-latest
     needs: build
     
@@ -54,7 +54,7 @@ jobs:
       Bundling_Workspace_Path: BundlingWorkspace
       Bundle_Install_Path: BundlePackage
       Unsigned_Packages_Path: Packages
-      Bundle_Artifact_Name: MyPhonePackageSigned
+      Bundle_Artifact_Name: MyPhonePackageUnsigned
     
     steps:
       - name: Setup VS Dev Environment
@@ -70,44 +70,13 @@ jobs:
           mkdir $env:Bundle_Install_Path
           mkdir $env:Bundling_Workspace_Path
           Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | Where-Object { $_.Name -notlike "*WindowsAppRuntime*" -and $_.Name -notlike "*VCLibs*" } | ForEach-Object { Copy-Item -Path $_.FullName -Destination $env:Bundling_Workspace_Path -Verbose }
-          Write-Output "Files found for bundling (Frameworks excluded):"
+          Write-Output "Files found for bundling:"
           Get-ChildItem -Path $env:Bundling_Workspace_Path
         
       - name: Bundle package
         run: MakeAppx bundle /d $env:Bundling_Workspace_Path /p "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
-         
-      - name: Decode the pfx
-        id: decode-pfx
-        run: |
-          $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.TESTING_PFX_BASE64_ENCODED }}")
-          $certificatePath = "GitHubActionsWorkflow.pfx"
-          [IO.File]::WriteAllBytes($certificatePath, $pfx_cert_byte)
-          
-      - name: Sign the bundle
-        run: SignTool sign /fd SHA256 /a /f GitHubActionsWorkflow.pfx /p "${{ secrets.TESTING_PFX_PASSPHRASE }}" "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
-      
-      - name: Post Decode the pfx
-        if: ${{ steps.decode-pfx.outcome == 'success' || steps.decode-pfx.outcome == 'failure' }}
-        run: Remove-Item -path GitHubActionsWorkflow.pfx
-          
-      - name: Prepare for upload
-        run: |
-          $files = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.ps1
-          if ($files) { cp $files.FullName $env:Bundle_Install_Path -Verbose }
-          
-          $symbols = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msixsym
-          if ($symbols) { cp $symbols.FullName $env:Bundle_Install_Path -Verbose }
-          
-          $dirs = Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse | Where-Object { $_.PSIsContainer -and $_.Name -eq "Dependencies" }
-          if ($dirs) { cp -Recurse $dirs.FullName $env:Bundle_Install_Path -Verbose }
 
-          Write-Output "Downloading public certificate"
-          $public_cert_byte = [System.Convert]::FromBase64String("${{ secrets.TESTING_PUBLIC_CERT_BASE64_ENCODED }}")
-          $public_cert_path = "$env:Bundle_Install_Path/MyPhoneTestingCert_GithubAction.cer"
-          [IO.File]::WriteAllBytes($public_cert_path, $public_cert_byte)
-          Write-Output "Downloaded public certificate at $public_cert_path"
-
-      - name: Upload signed MSIX package bundle
+      - name: Upload MSIX package bundle
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.Bundle_Artifact_Name }}
