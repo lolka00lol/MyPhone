@@ -1,4 +1,4 @@
-name: WinUI 3 MSIX app
+name: WinUI 3 Unpackaged EXE
 
 on:
   push:
@@ -6,78 +6,38 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
-  
+
 env:
-  Unsigned_Artifact_Name: MSIX Package
+  Artifact_Name: Build Output
 
 jobs:
   build:
     strategy:
       matrix:
         configuration: [Release]
-        platform: [x64, x86, ARM64]
-
+        platform: [x64, x86]
     runs-on: windows-latest
-    
-    env:
-      Solution_Name: MyPhone
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Install .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 6.0.x
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 6.0.x
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v3
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v3
 
-      - name: Restore the application
-        run: dotnet restore MyPhone.sln
+    - name: Restore the application
+      run: dotnet restore MyPhone.sln
 
-      - name: Create the app package
-        run: msbuild MyPhone/MyPhone.csproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never /p:AppxPackageDir="Packages\" /p:GenerateAppxPackageOnBuild=true /p:DisableWinEXEProjectCheck=true /p:DefineConstants="DISABLE_XAML_GENERATED_MAIN"
+    - name: Build EXE Application
+      run: |
+        msbuild MyPhone/MyPhone.csproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:AppxPackageSigningEnabled=false /p:GenerateAppxPackageOnBuild=false
 
-      - name: Upload MSIX package
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.Unsigned_Artifact_Name }}-${{ matrix.platform }}
-          path: MyPhone\Packages
-          
-  bundle:
-    name: Bundle the MSIX package
-    runs-on: windows-latest
-    needs: build
-    
-    env:
-      Bundling_Workspace_Path: BundlingWorkspace
-      Bundle_Install_Path: BundlePackage
-      Unsigned_Packages_Path: Packages
-      Bundle_Artifact_Name: MyPhonePackageUnsigned
-    
-    steps:
-      - name: Setup VS Dev Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
-        
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with: 
-          path: ${{ env.Unsigned_Packages_Path }}
-        
-      - name: Prepare workspace
-        run: |
-          mkdir $env:Bundle_Install_Path
-          mkdir $env:Bundling_Workspace_Path
-          Get-ChildItem -Path $env:Unsigned_Packages_Path -Recurse -Filter *.msix | Where-Object { $_.Name -notlike "*WindowsAppRuntime*" -and $_.Name -notlike "*VCLibs*" } | ForEach-Object { Copy-Item -Path $_.FullName -Destination $env:Bundling_Workspace_Path -Verbose }
-          Write-Output "Files found for bundling:"
-          Get-ChildItem -Path $env:Bundling_Workspace_Path
-        
-      - name: Bundle package
-        run: MakeAppx bundle /d $env:Bundling_Workspace_Path /p "$env:Bundle_Install_Path/MyPhonePackage.msixbundle"
-
-      - name: Upload MSIX package bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.Bundle_Artifact_Name }}
-          path: ${{ env.Bundle_Install_Path }}
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.Artifact_Name }}-${{ matrix.platform }}
+        path: MyPhone/bin/${{ matrix.platform }}/${{ matrix.configuration }}/net6.0-windows10.*/
