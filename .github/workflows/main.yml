@@ -25,12 +25,12 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 6.0.x
-        # Гарантирует, что будет использоваться установленный .NET 6, а не глобальный SDK 10.0
         global-json-file: '' 
 
+    # Добавлены флаги архитектуры -r и платформы /p, чтобы подготовить кэш к шагу publish
     - name: Restore the application
-      # Добавлен флаг --disable-parallel, чтобы потоки матрицы не отменяли NuGet-сессии друг друга
-      run: dotnet restore MyPhone.sln --disable-parallel
+      run: |
+        dotnet restore MyPhone.sln --disable-parallel -r win-${{ matrix.platform }} /p:Platform=${{ matrix.platform }}
 
     - name: Publish EXE Application
       run: |
