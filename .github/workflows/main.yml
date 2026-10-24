@@ -30,12 +30,12 @@ jobs:
       run: dotnet restore MyPhone.sln
 
     - name: Publish EXE Application
-      # Мы добавили /p:Platform=${{ matrix.platform }}, чтобы переопределить AnyCPU
       run: |
         dotnet publish MyPhone/MyPhone.csproj -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore -p:PublishReadyToRun=false /p:Platform=${{ matrix.platform }}
 
     - name: Upload Build Artifacts
-      uses: actions/artifact@v4
+      # Исправлено имя экшена на upload-artifact
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.Artifact_Name }}-${{ matrix.platform }}
         path: MyPhone/bin/${{ matrix.platform }}/${{ matrix.configuration }}/net6.0-windows10.*/win-${{ matrix.platform }}/publish/
