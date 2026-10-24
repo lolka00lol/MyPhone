@@ -27,11 +27,11 @@ jobs:
         dotnet-version: 6.0.x
         global-json-file: '' 
 
-    # Добавлены флаги архитектуры -r и платформы /p, чтобы подготовить кэш к шагу publish
+    # Очищено от флагов архитектуры -r, чтобы тесты и второстепенные библиотеки не выдавали ошибку
     - name: Restore the application
-      run: |
-        dotnet restore MyPhone.sln --disable-parallel -r win-${{ matrix.platform }} /p:Platform=${{ matrix.platform }}
+      run: dotnet restore MyPhone.sln --disable-parallel
 
+    # Архитектура и платформа теперь изолированно применяются только к исполняемому проекту
     - name: Publish EXE Application
       run: |
         dotnet publish MyPhone/MyPhone.csproj -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore -p:PublishReadyToRun=false /p:Platform=${{ matrix.platform }}
