@@ -17,6 +17,12 @@
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <UserSecretsId>df0f6223-d4fc-4172-a248-e350175a53c0</UserSecretsId>
+    
+    <!-- Говорим сборщику, что это НЕ MSIX приложение -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Включаем автоматическую интеграцию Windows App SDK внутрь папки приложения -->
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
