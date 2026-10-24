@@ -25,16 +25,18 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 6.0.x
+        # Гарантирует, что будет использоваться установленный .NET 6, а не глобальный SDK 10.0
+        global-json-file: '' 
 
     - name: Restore the application
-      run: dotnet restore MyPhone.sln
+      # Добавлен флаг --disable-parallel, чтобы потоки матрицы не отменяли NuGet-сессии друг друга
+      run: dotnet restore MyPhone.sln --disable-parallel
 
     - name: Publish EXE Application
       run: |
         dotnet publish MyPhone/MyPhone.csproj -c ${{ matrix.configuration }} -r win-${{ matrix.platform }} --no-restore -p:PublishReadyToRun=false /p:Platform=${{ matrix.platform }}
 
     - name: Upload Build Artifacts
-      # Исправлено имя экшена на upload-artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.Artifact_Name }}-${{ matrix.platform }}
